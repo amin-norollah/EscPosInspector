@@ -315,20 +315,29 @@ export async function renderReceipt(
         break;
       case 'text': {
         const textCmd = command as TextCommand;
-        const element = elements.find((e) => e.commandId === command.id && e.type === 'text');
-        if (!element) break;
+        // one element was laid out per line, so draw each line at its own row
+        // instead of collapsing the whole run onto the first line.
+        const lineElements = elements.filter(
+          (e) => e.commandId === command.id && e.type === 'text',
+        );
+        if (lineElements.length === 0) break;
         const fontSize = BASE_FONT_SIZE * state.fontScale;
         ctx.font = `${state.bold ? '600' : '400'} ${fontSize}px "IBM Plex Mono", monospace`;
         ctx.textBaseline = 'top';
-        if (isHighlighted) {
-          ctx.fillStyle = 'rgba(255, 214, 102, 0.45)';
-          ctx.fillRect((element.x ?? PADDING) - 4, element.y - 2, (element.width ?? 0) + 8, element.height + 4);
-        }
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(textCmd.text.replace(/\n/g, ' '), element.x ?? PADDING, element.y);
-        if (state.underline) {
-          ctx.fillRect(element.x ?? PADDING, element.y + fontSize + 2, textWidth(textCmd.text, state.fontScale, state.bold), 1);
-        }
+        textCmd.text.split('\n').forEach((line, i) => {
+          const element = lineElements[i];
+          if (!element) return;
+          const content = line || ' ';
+          if (isHighlighted) {
+            ctx.fillStyle = 'rgba(255, 214, 102, 0.45)';
+            ctx.fillRect((element.x ?? PADDING) - 4, element.y - 2, (element.width ?? 0) + 8, element.height + 4);
+          }
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillText(content, element.x ?? PADDING, element.y);
+          if (state.underline) {
+            ctx.fillRect(element.x ?? PADDING, element.y + fontSize + 2, textWidth(content, state.fontScale, state.bold), 1);
+          }
+        });
         break;
       }
       case 'lineFeed':
