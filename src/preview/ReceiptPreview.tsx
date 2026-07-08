@@ -32,6 +32,10 @@ export function ReceiptPreview({
       try {
         const result = await renderReceipt(commands, paperWidth, highlightCommandId);
         if (!cancelled) setImageDataUrl(result.imageDataUrl);
+      } catch {
+        // a broken image data url can reject the render; don't leave a stale
+        // preview or an unhandled rejection behind.
+        if (!cancelled) setImageDataUrl('');
       } finally {
         if (!cancelled) setLoading(false);
       }
