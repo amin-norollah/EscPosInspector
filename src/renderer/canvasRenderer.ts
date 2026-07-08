@@ -178,7 +178,12 @@ export function buildRenderElements(
       case 'rasterImage': {
         const imageCmd = command as ImageCommand;
         const displayWidth = Math.min(imageCmd.width, canvasWidth - PADDING * 2);
-        const displayHeight = Math.round((imageCmd.height / imageCmd.width) * displayWidth);
+        // guard against a zero-width image (truncated/empty stream) which would
+        // make the aspect ratio NaN and break the whole canvas layout.
+        const displayHeight =
+          imageCmd.width > 0
+            ? Math.round((imageCmd.height / imageCmd.width) * displayWidth)
+            : 0;
         const x = alignX(displayWidth, canvasWidth, state.alignment);
         elements.push({
           commandId: command.id,

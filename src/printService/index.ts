@@ -1,3 +1,14 @@
+// the title comes from a user-supplied file name, so escape it before dropping
+// it into the print window markup, otherwise a name like "a<b>.bin" breaks the
+// document (or worse, injects markup).
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export function printReceipt(imageDataUrl: string, title = 'ESC/POS Receipt'): void {
   const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=480,height=720');
   if (!printWindow) {
@@ -8,7 +19,7 @@ export function printReceipt(imageDataUrl: string, title = 'ESC/POS Receipt'): v
     <!DOCTYPE html>
     <html>
       <head>
-        <title>${title}</title>
+        <title>${escapeHtml(title)}</title>
         <style>
           body { margin: 0; display: flex; justify-content: center; background: #eee; }
           img { max-width: 100%; height: auto; }

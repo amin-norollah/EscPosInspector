@@ -39,7 +39,12 @@ function parseHexString(input: string): Uint8Array {
 
 function parseBase64String(input: string): Uint8Array {
   const cleaned = input.replace(/\s/g, '');
-  const binary = atob(cleaned);
+  let binary: string;
+  try {
+    binary = atob(cleaned);
+  } catch {
+    throw new Error('Input is not valid Base64.');
+  }
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
