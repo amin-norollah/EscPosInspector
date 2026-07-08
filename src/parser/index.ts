@@ -3,7 +3,6 @@ import {
   QR_ERROR_CORRECTION,
   bytesToHex,
   isTextByte,
-  readUint16LE,
 } from "./utils";
 import {
   decodeEscStarImage,
@@ -520,34 +519,6 @@ export function parseEscPos(data: Uint8Array, paperWidth = 384): ParseResult {
               data,
             ),
             symbology: BARCODE_TYPES[type] ?? `Type 0x${type.toString(16)}`,
-            data: barcodeData,
-            height: 0,
-            width: 2,
-            position: "below",
-          } as BarcodeCommand);
-          continue;
-        }
-
-        if (type === 0x48 && index + 5 < data.length) {
-          const len = readUint16LE(data, index + 3);
-          const dataStart = index + 5;
-          const dataEnd = dataStart + len;
-          if (dataEnd > data.length) break;
-          const barcodeData = new TextDecoder("ascii").decode(
-            data.subarray(dataStart, dataEnd),
-          );
-          index = dataEnd;
-          push({
-            ...baseCommand(
-              commandIndex,
-              "barcode",
-              "Barcode",
-              `CODE128 ; ${barcodeData}`,
-              start,
-              index,
-              data,
-            ),
-            symbology: "CODE128",
             data: barcodeData,
             height: 0,
             width: 2,
