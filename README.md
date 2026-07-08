@@ -2,6 +2,12 @@
 
 ![ESC/POS Receipt Inspector](docs/screenshots/demo.jpg)
 
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
+![HTML5 Canvas](https://img.shields.io/badge/Canvas-2D-E34F26?logo=html5&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+
 **EscPosInspector** is a browser-based **ESC/POS debugger**, **receipt preview** tool, and **thermal printer emulator** for developers building point-of-sale (POS) applications, payment integrations, kiosk software, and backend receipt generators.
 
 Instead of wasting paper or squinting at hex dumps, you can load a binary ESC/POS stream and instantly see:
@@ -56,6 +62,10 @@ EscPosInspector shortens that loop. Load `.bin`, `.escpos`, `.prn`, pasted **hex
 - **Modular architecture** ; parser, renderer, inspector, preview, file loader, and print service are separated for easy extension
 
 ## Quick start
+
+The runtime has **no third-party dependencies beyond React** ; the parser,
+renderer and inspector are written from scratch so the tool stays lightweight
+and fully client-side (no backend, no data leaves the browser).
 
 ### Requirements
 
