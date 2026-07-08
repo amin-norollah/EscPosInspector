@@ -1,0 +1,8 @@
+# Screenshot placeholders for README
+
+Add the following images before publishing:
+
+- `receipt-preview.png` ; full app with sample receipt rendered
+- `command-inspector.png` ; inspector list with decoded commands
+- `raster-debug.png` ; raster command expanded with image preview
+- `hex-fallback.png` ; unsupported command showing raw hex bytes
