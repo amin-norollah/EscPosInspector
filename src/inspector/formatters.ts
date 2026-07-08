@@ -5,6 +5,7 @@ import type {
   ParsedCommand,
   QrCodeCommand,
   TextCommand,
+  UnsupportedCommand,
 } from '@/types/escpos';
 
 export const CATEGORY_LABELS: Record<CommandCategory, string> = {
@@ -54,6 +55,7 @@ export function filterCommands(commands: ParsedCommand[], search: string): Parse
       command.category === 'text' ? (command as TextCommand).text : '',
       command.category === 'barcode' ? (command as BarcodeCommand).data : '',
       command.category === 'qrCode' ? (command as QrCodeCommand).data : '',
+      command.category === 'unsupported' ? (command as UnsupportedCommand).reason : '',
     ]
       .join(' ')
       .toLowerCase();
