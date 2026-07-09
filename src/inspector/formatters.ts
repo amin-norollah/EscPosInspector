@@ -16,6 +16,7 @@ export const CATEGORY_LABELS: Record<CommandCategory, string> = {
   font: 'Font',
   style: 'Style',
   feed: 'Feed',
+  lineSpacing: 'Line Spacing',
   cut: 'Cut',
   image: 'Image',
   rasterImage: 'Raster',
@@ -33,6 +34,7 @@ export const CATEGORY_COLORS: Record<CommandCategory, string> = {
   font: '#f59e0b',
   style: '#f472b6',
   feed: '#8aa0b4',
+  lineSpacing: '#64748b',
   cut: '#ef4444',
   image: '#38bdf8',
   rasterImage: '#0ea5e9',
@@ -104,6 +106,14 @@ export function getCommandDetails(command: ParsedCommand): Array<{ label: string
     const qr = command as QrCodeCommand;
     if (qr.data) details.push({ label: 'Data', value: qr.data });
     if (qr.size) details.push({ label: 'Module size', value: String(qr.size) });
+  }
+
+  if (command.category === 'lineSpacing') {
+    const spacing = command as import('@/types/escpos').LineSpacingCommand;
+    details.push({
+      label: 'Spacing',
+      value: spacing.spacing === null ? 'default' : `${spacing.spacing} dots`,
+    });
   }
 
   if (command.category === 'unsupported') {
