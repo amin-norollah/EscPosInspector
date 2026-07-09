@@ -37,22 +37,74 @@ export function rasterToDataUrl(
   return canvas.toDataURL('image/png');
 }
 
-export function decodeEscStarImage(
-  mode: number,
-  widthBytes: number,
-  height: number,
-  data: Uint8Array,
-): Pick<ImageCommand, 'width' | 'height' | 'imageSize' | 'imageDataUrl' | 'mode'> {
-  const width = widthBytes * 8;
-  const modeLabel =
-    mode === 0 ? '8-dot single density' : mode === 1 ? '8-dot double density' : mode === 32 ? '24-dot single density' : mode === 33 ? '24-dot double density' : `mode ${mode}`;
+// one ESC * band: a horizontal strip 8 or 24 dots tall, stored column by
+// column. the cashier app splits a tall image into a run of these stripes.
+export interface EscStarBand {
+  mode: number;
+  width: number; // dots (columns)
+  heightDots: number; // 8 or 24
+  data: Uint8Array; // width * (heightDots / 8) bytes
+}
 
+// ESC * is a COLUMN-format image: for each column we store 1 byte (8-dot
+// modes) or 3 bytes (24-dot modes 32/33), and the MSB of a byte is the
+// topmost dot. this is the opposite packing to GS v 0 (which is row-major),
+// so it needs its own bit math. the new printer contract emits the picture
+// as consecutive 24-dot stripes that butt together, so we stack the bands
+// vertically to rebuild the whole image.
+export function decodeEscStarStripes(
+  bands: EscStarBand[],
+): Pick<ImageCommand, 'width' | 'height' | 'imageSize' | 'imageDataUrl' | 'mode'> {
+  const width = bands.reduce((max, band) => Math.max(max, band.width), 0);
+  const height = bands.reduce((sum, band) => sum + band.heightDots, 0);
+  const imageSize = bands.reduce((sum, band) => sum + band.data.length, 0);
+  const dot24 = bands.some((band) => band.mode === 32 || band.mode === 33);
+  const density = bands.some((band) => band.mode === 1 || band.mode === 33)
+    ? 'double'
+    : 'single';
+  const stripeCount = bands.length;
+  const mode = `ESC * ${dot24 ? '24' : '8'}-dot ${density} density, ${stripeCount} stripe${stripeCount === 1 ? '' : 's'}`;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, width);
+  canvas.height = Math.max(1, height);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    return { width, height, imageSize, imageDataUrl: '', mode };
+  }
+
+  const imageData = ctx.createImageData(canvas.width, canvas.height);
+  // paper is white to start with; we only paint the black dots on top.
+  imageData.data.fill(255);
+
+  let yOffset = 0;
+  for (const band of bands) {
+    const bytesPerColumn = band.heightDots / 8;
+    for (let x = 0; x < band.width; x++) {
+      for (let dot = 0; dot < band.heightDots; dot++) {
+        // walk down the column: high bits are the top dots.
+        const byteIndex = x * bytesPerColumn + (dot >> 3);
+        const bit = 7 - (dot & 7);
+        const on =
+          byteIndex < band.data.length &&
+          ((band.data[byteIndex]! >> bit) & 1) === 1;
+        if (!on) continue;
+        const dst = ((yOffset + dot) * canvas.width + x) * 4;
+        imageData.data[dst] = 0;
+        imageData.data[dst + 1] = 0;
+        imageData.data[dst + 2] = 0;
+      }
+    }
+    yOffset += band.heightDots;
+  }
+
+  ctx.putImageData(imageData, 0, 0);
   return {
     width,
     height,
-    imageSize: data.length,
-    imageDataUrl: rasterToDataUrl(data, width, height),
-    mode: `ESC * ${modeLabel}`,
+    imageSize,
+    imageDataUrl: canvas.toDataURL('image/png'),
+    mode,
   };
 }
 
