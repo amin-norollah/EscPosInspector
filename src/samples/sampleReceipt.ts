@@ -8,33 +8,39 @@ function pushBytes(chunks: number[], bytes: number[]): void {
   chunks.push(...bytes);
 }
 
-function buildSampleRasterLogo(): { width: number; height: number; bytes: number[] } {
+// build the logo the way the new printer contract expects it: a run of
+// 24-dot ESC * (mode 33) stripes stored in COLUMN format. each column holds
+// 3 bytes (24 dots) and the MSB of a byte is the topmost dot.
+function buildSampleLogoStripes(): { width: number; stripes: number[][] } {
   const width = 64;
-  const height = 24;
-  const rowBytes = width / 8;
-  const bytes: number[] = [];
+  const height = 48; // two 24-dot stripes
+  const stripes: number[][] = [];
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < rowBytes; x++) {
-      let value = 0;
-      for (let bit = 0; bit < 8; bit++) {
-        const px = x * 8 + bit;
-        const edge = px < 4 || px > width - 5 || y < 3 || y > height - 4;
-        const stripe = ((px + y) % 7) === 0;
-        if (edge || stripe) {
-          value |= 1 << (7 - bit);
+  for (let bandY = 0; bandY < height; bandY += 24) {
+    const band: number[] = [];
+    for (let x = 0; x < width; x++) {
+      for (let byteRow = 0; byteRow < 3; byteRow++) {
+        let value = 0;
+        for (let bit = 0; bit < 8; bit++) {
+          const y = bandY + byteRow * 8 + bit;
+          const edge = x < 4 || x > width - 5 || y < 3 || y > height - 4;
+          const diagonal = ((x + y) % 7) === 0;
+          if (edge || diagonal) {
+            value |= 1 << (7 - bit); // MSB = top dot of the column
+          }
         }
+        band.push(value);
       }
-      bytes.push(value);
     }
+    stripes.push(band);
   }
 
-  return { width, height, bytes };
+  return { width, stripes };
 }
 
 export function createSampleEscPos(): Uint8Array {
   const chunks: number[] = [];
-  const logo = buildSampleRasterLogo();
+  const logo = buildSampleLogoStripes();
 
   pushBytes(chunks, [0x1b, 0x40]);
   pushBytes(chunks, [0x1b, 0x61, 0x01]);
@@ -51,12 +57,18 @@ export function createSampleEscPos(): Uint8Array {
   pushBytes(chunks, [0x1b, 0x61, 0x02]);
   pushText(chunks, 'Total: $20.00\n');
   pushBytes(chunks, [0x1b, 0x61, 0x01]);
-  pushBytes(chunks, [0x1b, 0x4a, 0x18]);
 
-  pushBytes(chunks, [0x1d, 0x76, 0x30, 0x00]);
-  pushBytes(chunks, [logo.width / 8, 0]);
-  pushBytes(chunks, [logo.height & 0xff, (logo.height >> 8) & 0xff]);
-  pushBytes(chunks, logo.bytes);
+  // logo as an ESC * mode-33 column-stripe job: tighten the line spacing to
+  // 24 dots so the stripes butt together, emit each stripe, then restore it.
+  pushBytes(chunks, [0x1b, 0x33, 0x18]);
+  const wL = logo.width & 0xff;
+  const wH = (logo.width >> 8) & 0xff;
+  for (const stripe of logo.stripes) {
+    pushBytes(chunks, [0x1b, 0x2a, 0x21, wL, wH]);
+    pushBytes(chunks, stripe);
+    pushBytes(chunks, [0x0a]);
+  }
+  pushBytes(chunks, [0x1b, 0x32]);
 
   pushBytes(chunks, [0x1b, 0x61, 0x01]);
   pushBytes(chunks, [0x1d, 0x6b, 0x49, 0x0a, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30]);
@@ -68,8 +80,9 @@ export function createSampleEscPos(): Uint8Array {
   pushBytes(chunks, [0x1d, 0x28, 0x6b, qr.length + 3, 0x00, 0x31, 0x50, 0x30]);
   pushText(chunks, qr);
   pushBytes(chunks, [0x1d, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x51, 0x30]);
+
+  // the job now ends with a feed instead of a cut command.
   pushBytes(chunks, [0x1b, 0x64, 0x04]);
-  pushBytes(chunks, [0x1d, 0x56, 0x00]);
 
   return new Uint8Array(chunks);
 }
