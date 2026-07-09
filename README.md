@@ -111,10 +111,10 @@ The inspector panel shows decoded commands such as:
 - Alignment
 - Font Size / Print Mode
 - Line Feed / Feed
-- Bit Image / Raster Image
+- Line Spacing (`ESC 3` / `ESC 2`)
+- Bit Image (`ESC *` column stripes) / Raster Image (`GS ( L`)
 - QR Code
 - Barcode
-- Cut
 - Unsupported commands with raw hex
 
 Click a command to highlight the corresponding preview region when a visual mapping exists.
@@ -129,10 +129,10 @@ EscPosInspector currently decodes many common ESC/POS commands used in receipt p
 | Text            | printable text runs                        |
 | Layout          | `ESC a` alignment                          |
 | Typography      | `ESC !`, `GS !`, `ESC E`, `ESC -`          |
-| Paper feed      | `LF`, `CR`, `ESC d`, `ESC J`               |
-| Cut             | `GS V`                                     |
-| Legacy image    | `ESC *` bit image                          |
-| Raster image    | `GS v 0`, `GS ( L` graphics store          |
+| Paper feed      | `LF`, `CR`, `ESC d`                        |
+| Line spacing    | `ESC 3` set, `ESC 2` restore default       |
+| Column image    | `ESC *` mode 33 (24-dot) column stripes    |
+| Raster image    | `GS ( L` graphics store                    |
 | QR code         | `GS ( k` store/size/error correction/print |
 | Barcode         | `GS k` CODE128 and common symbologies      |
 
