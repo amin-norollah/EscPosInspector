@@ -5,19 +5,20 @@ import {
   isTextByte,
 } from "./utils";
 import {
-  decodeEscStarImage,
+  decodeEscStarStripes,
   decodeGsV0Image,
   estimatePaperWidthFromImage,
 } from "./decodeImage";
+import type { EscStarBand } from "./decodeImage";
 import type {
   AlignmentCommand,
   BarcodeCommand,
   BaseCommand,
   CommandCategory,
-  CutCommand,
   FeedCommand,
   FontCommand,
   ImageCommand,
+  LineSpacingCommand,
   ParseResult,
   ParsedCommand,
   QrCodeCommand,
@@ -250,18 +251,91 @@ export function parseEscPos(data: Uint8Array, paperWidth = 384): ParseResult {
         continue;
       }
 
-      // ESC * is the old bit image command. the mode tells us if each
-      // column is 8 dots or 24 dots tall, so the row size changes with it.
-      if (next === 0x2a && index + 4 < data.length) {
-        const mode = data[index + 2]!;
-        const widthBytes = data[index + 3]!;
-        const height = data[index + 4]!;
-        const bytesPerRow =
-          mode === 32 || mode === 33 ? widthBytes * 3 : widthBytes;
-        const imageBytes = bytesPerRow * height;
-        const end = index + 5 + imageBytes;
+      // ESC 3 n sets the line spacing (in dots). the cashier app sends
+      // ESC 3 24 before the image so the 24-dot stripes butt together with
+      // no gap. it only changes feed distance, so there is nothing to draw.
+      if (next === 0x33 && index + 2 < data.length) {
+        const spacing = data[index + 2]!;
+        index += 3;
+        push({
+          ...baseCommand(
+            commandIndex,
+            "lineSpacing",
+            "Line Spacing",
+            `ESC 3 ; line spacing = ${spacing} dot(s)`,
+            start,
+            index,
+            data,
+            false,
+          ),
+          spacing,
+        } as LineSpacingCommand);
+        continue;
+      }
 
-        if (end > data.length) {
+      // ESC 2 restores the default line spacing (sent after the image run).
+      if (next === 0x32) {
+        index += 2;
+        push({
+          ...baseCommand(
+            commandIndex,
+            "lineSpacing",
+            "Line Spacing",
+            "ESC 2 ; restore default line spacing",
+            start,
+            index,
+            data,
+            false,
+          ),
+          spacing: null,
+        } as LineSpacingCommand);
+        continue;
+      }
+
+      // ESC * is a column-format bit image. the cashier app emits a tall
+      // picture as a run of stripes (ESC * m nL nH <data> LF), each 8 or 24
+      // dots tall, that butt together. we swallow the whole consecutive run
+      // here and rebuild it into a single image. nL/nH is the width in DOTS
+      // (little-endian) and the data is width * bytesPerColumn bytes.
+      if (next === 0x2a) {
+        const bands: EscStarBand[] = [];
+        let cursor = index;
+        let truncated = false;
+
+        while (
+          cursor + 1 < data.length &&
+          data[cursor] === 0x1b &&
+          data[cursor + 1] === 0x2a
+        ) {
+          if (cursor + 5 > data.length) {
+            truncated = true;
+            break;
+          }
+          const mode = data[cursor + 2]!;
+          const width = data[cursor + 3]! + data[cursor + 4]! * 256;
+          const bytesPerColumn = mode === 32 || mode === 33 ? 3 : 1;
+          const heightDots = mode === 32 || mode === 33 ? 24 : 8;
+          const dataStart = cursor + 5;
+          const dataEnd = dataStart + width * bytesPerColumn;
+
+          if (dataEnd > data.length) {
+            truncated = true;
+            break;
+          }
+
+          bands.push({
+            mode,
+            width,
+            heightDots,
+            data: data.subarray(dataStart, dataEnd),
+          });
+          cursor = dataEnd;
+          // each stripe ends with LF, which is what actually prints it. it is
+          // part of the image job, not a content line feed, so absorb it.
+          if (data[cursor] === 0x0a) cursor += 1;
+        }
+
+        if (bands.length === 0) {
           push({
             ...baseCommand(
               commandIndex,
@@ -272,18 +346,17 @@ export function parseEscPos(data: Uint8Array, paperWidth = 384): ParseResult {
               data.length,
               data,
             ),
-            reason: `Expected ${imageBytes} image bytes`,
+            reason: "Expected ESC * stripe data",
           } as UnsupportedCommand);
           break;
         }
 
-        const imageData = data.subarray(index + 5, end);
-        const decoded = decodeEscStarImage(mode, widthBytes, height, imageData);
+        const decoded = decodeEscStarStripes(bands);
         detectedWidth = Math.max(
           detectedWidth,
           estimatePaperWidthFromImage(decoded.width),
         );
-        index = end;
+        index = cursor;
         push({
           ...baseCommand(
             commandIndex,
@@ -296,25 +369,12 @@ export function parseEscPos(data: Uint8Array, paperWidth = 384): ParseResult {
           ),
           ...decoded,
         } as ImageCommand);
-        continue;
-      }
 
-      if (next === 0x4a && index + 2 < data.length) {
-        const units = data[index + 2]!;
-        index += 3;
-        push({
-          ...baseCommand(
-            commandIndex,
-            "feed",
-            "Feed Units",
-            `Feed ${units} dot(s)`,
-            start,
-            index,
-            data,
-            units > 0,
-          ),
-          lines: units,
-        } as FeedCommand);
+        if (truncated) {
+          warnings.push(
+            "ESC * image stream ended mid-stripe; the image may be incomplete.",
+          );
+        }
         continue;
       }
 
@@ -382,100 +442,12 @@ export function parseEscPos(data: Uint8Array, paperWidth = 384): ParseResult {
         continue;
       }
 
-      if (next === 0x56 && index + 2 < data.length) {
-        const mode = data[index + 2]!;
-        const cutMode: CutCommand["mode"] =
-          mode === 0 || mode === 48 ? "full" : "partial";
-        const end =
-          mode === 66 && index + 3 < data.length ? index + 4 : index + 3;
-        index = end;
-        push({
-          ...baseCommand(
-            commandIndex,
-            "cut",
-            "Cut Paper",
-            `GS V ; ${cutMode} cut`,
-            start,
-            index,
-            data,
-          ),
-          mode: cutMode,
-        } as CutCommand);
-        continue;
-      }
-
-      // GS v 0 is the modern raster image. width comes in bytes not pixels,
-      // so we multiply by 8 to get the real pixel width. took me a while to
-      // notice this one, the first sample looked totaly broken because of it.
-      if (
-        next === 0x76 &&
-        index + 2 < data.length &&
-        data[index + 2] === 0x30
-      ) {
-        if (index + 7 >= data.length) {
-          push({
-            ...baseCommand(
-              commandIndex,
-              "unsupported",
-              "Incomplete Raster Image",
-              "GS v 0 data truncated",
-              start,
-              data.length,
-              data,
-            ),
-            reason: "Missing raster header bytes",
-          } as UnsupportedCommand);
-          break;
-        }
-
-        const mode = data[index + 3]!;
-        const xL = data[index + 4]!;
-        const xH = data[index + 5]!;
-        const yL = data[index + 6]!;
-        const yH = data[index + 7]!;
-        const widthBytes = xL + xH * 256;
-        const height = yL + yH * 256;
-        const widthPx = widthBytes * 8;
-        const imageBytes = widthBytes * height;
-        const end = index + 8 + imageBytes;
-
-        if (end > data.length) {
-          push({
-            ...baseCommand(
-              commandIndex,
-              "unsupported",
-              "Incomplete Raster Image",
-              "GS v 0 image data truncated",
-              start,
-              data.length,
-              data,
-            ),
-            reason: `Expected ${imageBytes} raster bytes`,
-          } as UnsupportedCommand);
-          break;
-        }
-
-        const imageData = data.subarray(index + 8, end);
-        const decoded = decodeGsV0Image(mode, widthPx, height, imageData);
-        detectedWidth = Math.max(
-          detectedWidth,
-          estimatePaperWidthFromImage(decoded.width),
-        );
-        index = end;
-        push({
-          ...baseCommand(
-            commandIndex,
-            "rasterImage",
-            "Raster Image",
-            `${decoded.mode}, ${decoded.width}×${decoded.height}px, ${decoded.imageSize} bytes`,
-            start,
-            index,
-            data,
-          ),
-          ...decoded,
-        } as ImageCommand);
-        continue;
-      }
+      // GS V (paper cut) and GS v 0 (row-major raster image) are no longer
+      // part of the printer contract ; the cashier app now ends every job
+      // with ESC d n and sends images as ESC * column stripes. we deliberately
+      // do not decode either sequence anymore, so any leftover GS V / GS v 0
+      // bytes fall through to the "Unsupported GS Command" branch below where
+      // the developer can still see their raw hex.
 
       if (next === 0x6b) {
         if (index + 2 >= data.length) break;
