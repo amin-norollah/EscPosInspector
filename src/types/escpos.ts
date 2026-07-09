@@ -6,6 +6,7 @@ export type CommandCategory =
   | 'font'
   | 'style'
   | 'feed'
+  | 'lineSpacing'
   | 'cut'
   | 'image'
   | 'rasterImage'
@@ -68,6 +69,12 @@ export interface FeedCommand extends BaseCommand {
   lines: number;
 }
 
+export interface LineSpacingCommand extends BaseCommand {
+  category: 'lineSpacing';
+  // spacing in dots, or null when the default spacing is restored (ESC 2).
+  spacing: number | null;
+}
+
 export interface CutCommand extends BaseCommand {
   category: 'cut';
   mode: 'full' | 'partial';
@@ -117,6 +124,7 @@ export type ParsedCommand =
   | FontCommand
   | StyleCommand
   | FeedCommand
+  | LineSpacingCommand
   | CutCommand
   | ImageCommand
   | QrCodeCommand
