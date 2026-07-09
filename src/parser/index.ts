@@ -15,6 +15,7 @@ import type {
   BarcodeCommand,
   BaseCommand,
   CommandCategory,
+  CutCommand,
   FeedCommand,
   FontCommand,
   ImageCommand,
@@ -378,6 +379,28 @@ export function parseEscPos(data: Uint8Array, paperWidth = 384): ParseResult {
         continue;
       }
 
+      // ESC J n prints and feeds n dots. the new contract ends jobs with
+      // ESC d instead, but we still decode ESC J so legacy streams read back
+      // cleanly in the inspector.
+      if (next === 0x4a && index + 2 < data.length) {
+        const units = data[index + 2]!;
+        index += 3;
+        push({
+          ...baseCommand(
+            commandIndex,
+            "feed",
+            "Feed Units",
+            `Feed ${units} dot(s)`,
+            start,
+            index,
+            data,
+            units > 0,
+          ),
+          lines: units,
+        } as FeedCommand);
+        continue;
+      }
+
       index += 2;
       push({
         ...baseCommand(
@@ -443,11 +466,103 @@ export function parseEscPos(data: Uint8Array, paperWidth = 384): ParseResult {
       }
 
       // GS V (paper cut) and GS v 0 (row-major raster image) are no longer
-      // part of the printer contract ; the cashier app now ends every job
-      // with ESC d n and sends images as ESC * column stripes. we deliberately
-      // do not decode either sequence anymore, so any leftover GS V / GS v 0
-      // bytes fall through to the "Unsupported GS Command" branch below where
-      // the developer can still see their raw hex.
+      // emitted by the cashier app, which now ends jobs with ESC d and sends
+      // images as ESC * column stripes. we still decode them both so older /
+      // third-party streams remain fully readable in the inspector.
+      if (next === 0x56 && index + 2 < data.length) {
+        const mode = data[index + 2]!;
+        const cutMode: CutCommand["mode"] =
+          mode === 0 || mode === 48 ? "full" : "partial";
+        const end =
+          mode === 66 && index + 3 < data.length ? index + 4 : index + 3;
+        index = end;
+        push({
+          ...baseCommand(
+            commandIndex,
+            "cut",
+            "Cut Paper",
+            `GS V ; ${cutMode} cut`,
+            start,
+            index,
+            data,
+          ),
+          mode: cutMode,
+        } as CutCommand);
+        continue;
+      }
+
+      // GS v 0 is the row-major raster image: width is in bytes (×8 for the
+      // pixel width) and the MSB of a byte is the leftmost pixel ; the opposite
+      // packing to the column-format ESC * stripes above.
+      if (
+        next === 0x76 &&
+        index + 2 < data.length &&
+        data[index + 2] === 0x30
+      ) {
+        if (index + 7 >= data.length) {
+          push({
+            ...baseCommand(
+              commandIndex,
+              "unsupported",
+              "Incomplete Raster Image",
+              "GS v 0 data truncated",
+              start,
+              data.length,
+              data,
+            ),
+            reason: "Missing raster header bytes",
+          } as UnsupportedCommand);
+          break;
+        }
+
+        const mode = data[index + 3]!;
+        const xL = data[index + 4]!;
+        const xH = data[index + 5]!;
+        const yL = data[index + 6]!;
+        const yH = data[index + 7]!;
+        const widthBytes = xL + xH * 256;
+        const height = yL + yH * 256;
+        const widthPx = widthBytes * 8;
+        const imageBytes = widthBytes * height;
+        const end = index + 8 + imageBytes;
+
+        if (end > data.length) {
+          push({
+            ...baseCommand(
+              commandIndex,
+              "unsupported",
+              "Incomplete Raster Image",
+              "GS v 0 image data truncated",
+              start,
+              data.length,
+              data,
+            ),
+            reason: `Expected ${imageBytes} raster bytes`,
+          } as UnsupportedCommand);
+          break;
+        }
+
+        const imageData = data.subarray(index + 8, end);
+        const decoded = decodeGsV0Image(mode, widthPx, height, imageData);
+        detectedWidth = Math.max(
+          detectedWidth,
+          estimatePaperWidthFromImage(decoded.width),
+        );
+        index = end;
+        push({
+          ...baseCommand(
+            commandIndex,
+            "rasterImage",
+            "Raster Image",
+            `${decoded.mode}, ${decoded.width}×${decoded.height}px, ${decoded.imageSize} bytes`,
+            start,
+            index,
+            data,
+          ),
+          ...decoded,
+        } as ImageCommand);
+        continue;
+      }
 
       if (next === 0x6b) {
         if (index + 2 >= data.length) break;
