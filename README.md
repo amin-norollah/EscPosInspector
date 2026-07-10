@@ -182,6 +182,14 @@ Design goals:
 - [ ] CLI packaging for CI receipt regression tests
 - [ ] Optional server-side rendering for large streams
 
+## AI assistant
+
+Parts of this project were developed with the help of an AI coding assistant. It contributed in the following areas:
+
+- **Fix bugs** ; diagnose parser edge cases, renderer misalignment and input-handling issues, then propose focused fixes
+- **Modernize the UI** ; refine layout, styling, and component structure for a cleaner, more responsive interface
+- **Add documentation** ; draft and update README sections, rephrase inline comments and usage guidance
+
 ## Contributing
 
 Contributions are welcome.
