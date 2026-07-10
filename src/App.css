@@ -11,6 +11,8 @@
   --success: #3ecf8e;
   --warning: #f5a623;
   --danger: #f87171;
+  --info: #a78bfa;
+  --info-strong: #8b6ef0;
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
   font-family: "IBM Plex Sans", system-ui, sans-serif;
   line-height: 1.5;
@@ -107,6 +109,18 @@ textarea {
 
 .btn.secondary:hover {
   border-color: var(--accent);
+}
+
+.btn.info {
+  background: var(--info);
+  border-color: var(--info);
+  color: #17111f;
+  font-weight: 600;
+}
+
+.btn.info:hover {
+  background: var(--info-strong);
+  border-color: var(--info-strong);
 }
 
 .loader-panel,
@@ -395,6 +409,112 @@ textarea,
   image-rendering: pixelated;
   background: white;
   border-radius: 8px;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(6, 9, 13, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.dialog {
+  width: min(560px, 100%);
+  max-height: min(80vh, 720px);
+  overflow: auto;
+  padding: 22px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.dialog-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.dialog-close {
+  width: 34px;
+  height: 34px;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--text);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.dialog-close:hover {
+  border-color: var(--info);
+}
+
+.dialog-intro {
+  margin: 10px 0 18px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.command-reference {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.command-reference li {
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.command-reference-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.command-reference-category {
+  font-weight: 600;
+}
+
+.command-reference-codes {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.command-reference-codes code {
+  padding: 2px 7px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+  color: #d6c8ff;
+  background: rgba(167, 139, 250, 0.14);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: 6px;
+}
+
+.command-reference-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 @media (max-width: 1080px) {

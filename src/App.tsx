@@ -6,6 +6,7 @@ import { ReceiptPreview } from "@/preview";
 import { renderReceipt } from "@/renderer";
 import { printReceipt, downloadBinary } from "@/printService";
 import { createSampleEscPos } from "@/samples/sampleReceipt";
+import { SupportedCommandsDialog } from "./SupportedCommandsDialog";
 import type { InputFormat, LoadedFile } from "@/types/escpos";
 import "./App.css";
 
@@ -20,6 +21,7 @@ export default function App() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [showSupportedCommands, setShowSupportedCommands] = useState(false);
 
   // only re parse when the loaded file really changes. parsing is cheap here
   // but the memo keeps the same array ref so the preview does not redraw for
@@ -98,6 +100,13 @@ export default function App() {
           </p>
         </div>
         <div className="header-actions">
+          <button
+            type="button"
+            className="btn info"
+            onClick={() => setShowSupportedCommands(true)}
+          >
+            Supported commands
+          </button>
           <button
             type="button"
             className="btn secondary"
@@ -231,6 +240,12 @@ export default function App() {
           />
         </section>
       </main>
+
+      {showSupportedCommands && (
+        <SupportedCommandsDialog
+          onClose={() => setShowSupportedCommands(false)}
+        />
+      )}
     </div>
   );
 }
