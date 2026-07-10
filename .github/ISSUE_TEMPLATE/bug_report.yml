@@ -1,0 +1,58 @@
+name: Bug report
+description: Report a decoding, rendering, or UI problem
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report! Please provide as much
+        detail as you can. Sample input bytes make issues far easier to fix.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+      placeholder: The QR code command was decoded as Unsupported...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: What should have happened instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: input-type
+    attributes:
+      label: Input type
+      description: How did you load the ESC/POS data?
+      options:
+        - Binary file (.bin / .escpos / .prn)
+        - Hex paste
+        - Base64 paste
+        - Built-in sample receipt
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Sample input bytes
+      description: Paste the hex or Base64 that reproduces the issue (if possible).
+      render: text
+    validations:
+      required: false
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and OS
+      placeholder: Chrome 126 on Windows 11
+    validations:
+      required: false
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or additional context
+    validations:
+      required: false

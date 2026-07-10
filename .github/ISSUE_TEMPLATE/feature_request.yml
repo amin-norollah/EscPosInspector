@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest a new command handler, renderer improvement, or workflow
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement! If this is about ESC/POS command
+        support, please describe the command and its byte layout.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do that is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the feature or ESC/POS behavior you would like supported.
+    validations:
+      required: true
+  - type: textarea
+    id: escpos
+    attributes:
+      label: ESC/POS command details (if applicable)
+      description: Command name, byte sequence, and expected rendering/inspection output.
+      render: text
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
