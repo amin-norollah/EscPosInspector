@@ -33,12 +33,12 @@ EscPosInspector shortens that loop. Load `.bin`, `.escpos`, `.prn`, pasted **hex
 
 ### Typical debugging scenarios
 
-- **Receipt layout issues** ; verify alignment, line feeds, bold state, and font size commands before shipping to production.
-- **Raster image debugging** ; confirm width/height headers, payload length, and decoded bitmap previews for logos and signatures.
-- **QR code printing** ; inspect QR setup commands (`GS ( k`) and confirm stored payload data.
-- **Barcode printing** ; validate symbology selection and encoded data for CODE128, EAN, UPC, and related formats.
-- **API integration testing** ; paste Base64 ESC/POS returned by a cloud print API and confirm the decoded stream.
-- **Regression checks** ; compare command offsets and raw hex between builds when receipt output changes unexpectedly.
+- **Receipt layout issues**: verify alignment, line feeds, bold state, and font size commands before shipping to production.
+- **Raster image debugging**: confirm width/height headers, payload length, and decoded bitmap previews for logos and signatures.
+- **QR code printing**: inspect QR setup commands (`GS ( k`) and confirm stored payload data.
+- **Barcode printing**: validate symbology selection and encoded data for CODE128, EAN, UPC, and related formats.
+- **API integration testing**: paste Base64 ESC/POS returned by a cloud print API and confirm the decoded stream.
+- **Regression checks**: compare command offsets and raw hex between builds when receipt output changes unexpectedly.
 
 ### Problems this tool helps solve
 
@@ -49,21 +49,29 @@ EscPosInspector shortens that loop. Load `.bin`, `.escpos`, `.prn`, pasted **hex
 - Encoding mismatches in text sections
 - Difficulty reproducing customer receipt issues without hardware
 
+## AI assistant
+
+Parts of this project were developed with the help of an AI coding assistant. It contributed in the following areas:
+
+- **Fix bugs**: diagnose parser edge cases, renderer misalignment and input-handling issues, then propose focused fixes
+- **Modernize the UI**: refine layout, styling, and component structure for a cleaner, more responsive interface
+- **Add documentation**: draft and update README sections, rephrase inline comments and usage guidance
+
 ## Features
 
-- **Receipt preview** ; render a thermal-style receipt from ESC/POS binary data
-- **ESC/POS inspector** ; human-readable command decoding with stream offsets
-- **Click-to-highlight** ; select a command to highlight matching preview content when possible
-- **Raster/image analysis** ; show command type, dimensions, payload size, stream position, and image preview
-- **Hex/Base64 input** ; debug API payloads without creating files
-- **Unsupported command visibility** ; undecoded bytes are shown as hex instead of being silently dropped
-- **Print preview** ; open a printer-friendly preview window
-- **Sample receipt** ; built-in demo stream for exploring the UI
-- **Modular architecture** ; parser, renderer, inspector, preview, file loader, and print service are separated for easy extension
+- **Receipt preview**: render a thermal-style receipt from ESC/POS binary data
+- **ESC/POS inspector**: human-readable command decoding with stream offsets
+- **Click-to-highlight**: select a command to highlight matching preview content when possible
+- **Raster/image analysis**: show command type, dimensions, payload size, stream position, and image preview
+- **Hex/Base64 input**: debug API payloads without creating files
+- **Unsupported command visibility**: undecoded bytes are shown as hex instead of being silently dropped
+- **Print preview**: open a printer-friendly preview window
+- **Sample receipt**: built-in demo stream for exploring the UI
+- **Modular architecture**: parser, renderer, inspector, preview, file loader, and print service are separated for easy extension
 
 ## Quick start
 
-The runtime has **no third-party dependencies beyond React** ; the parser,
+The runtime has **no third-party dependencies beyond React**: the parser,
 renderer and inspector are written from scratch so the tool stays lightweight
 and fully client-side (no backend, no data leaves the browser).
 
@@ -182,14 +190,6 @@ Design goals:
 - [ ] CLI packaging for CI receipt regression tests
 - [ ] Optional server-side rendering for large streams
 
-## AI assistant
-
-Parts of this project were developed with the help of an AI coding assistant. It contributed in the following areas:
-
-- **Fix bugs** ; diagnose parser edge cases, renderer misalignment and input-handling issues, then propose focused fixes
-- **Modernize the UI** ; refine layout, styling, and component structure for a cleaner, more responsive interface
-- **Add documentation** ; draft and update README sections, rephrase inline comments and usage guidance
-
 ## Contributing
 
 Contributions are welcome.
@@ -204,9 +204,9 @@ Please keep modules small and prefer extending the typed command model over addi
 
 ## License
 
-MIT ; see [LICENSE](LICENSE).
+MIT; see [LICENSE](LICENSE).
 
-Developed by [Amin Norollah](https://github.com/amin-norollah). Free to use ; attribution is not required, but crediting the author is appreciated.
+Developed by [Amin Norollah](https://github.com/amin-norollah). Free to use; attribution is not required, but crediting the author is appreciated.
 
 ---
 
